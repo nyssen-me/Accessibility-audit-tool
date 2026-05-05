@@ -24,7 +24,6 @@
       </div>
     </div>
   </header>
-
   <!-- Section navigation (shown during testing) -->
   <div class="section-nav-wrap" id="section-nav-wrap" style="display:none" role="navigation" aria-label="Checklist sections">
     <div class="section-nav-inner">
@@ -444,7 +443,7 @@
     info.innerHTML =
       (d.sn ? `<span class="site-detail"><strong>${esc(d.sn)}</strong></span>` : '') +
       (d.tn ? `<span class="site-detail">Tester: <strong>${esc(d.tn)}</strong></span>` : '') +
-      (d.td ? `<span class="site-detail">${esc(d.td)}</span>` : '');
+      (d.td ? `<span class="site-detail">${esc(fmtDate(d.td))}</span>` : '');
 
     if (!document.getElementById('sections-container').children.length) {
       buildSections();
@@ -764,15 +763,19 @@
     @media print {
       .page { padding: 0; max-width: none; }
       div { page-break-inside: avoid; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
 <body>
 <div class="page">
 
-  <div style="border-bottom:3px solid #00282E;padding-bottom:20px;margin-bottom:28px">
-    <h1 style="margin:0 0 5px;font-size:24px;font-weight:700;color:#00282E">Accessibility audit report</h1>
-    <p style="margin:0;font-size:13px;color:#5a6270">WCAG 2.2 Level AA &middot; Generated ${now}</p>
+  <div style="border-bottom:3px solid #00282E;padding-bottom:20px;margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <h1 style="margin:0 0 5px;font-size:24px;font-weight:700;color:#00282E">Accessibility audit report</h1>
+      <p style="margin:0;font-size:13px;color:#5a6270">WCAG 2.2 Level AA &middot; Generated ${now}</p>
+    </div>
+    <button class="no-print" onclick="window.print()" style="margin-top:4px;padding:8px 18px;background:#00282E;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer">Print / Save as PDF</button>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px">
@@ -784,7 +787,7 @@
     <div style="border:1px solid #dde1e7;border-radius:6px;padding:16px">
       <p style="margin:0 0 4px;font-size:11px;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Tester</p>
       <p style="margin:0;font-size:15px;font-weight:700">${d.tn || '—'}</p>
-      <p style="margin:4px 0 0;font-size:12px;color:#5a6270">Date tested: ${d.td || '—'}</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#5a6270">Date tested: ${fmtDate(d.td) || '—'}</p>
     </div>
   </div>
 
@@ -824,19 +827,20 @@
 
     const blob = new Blob([report], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `a11y-report-${(d.sn || 'site').replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${d.td || 'undated'}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const win = window.open(url, '_blank');
+    if (win) win.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
   }
 
   // ─── Utility ──────────────────────────────────────────────────────────────
 
   function esc(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}-${m}-${y}`;
   }
 
   // ─── Go ───────────────────────────────────────────────────────────────────

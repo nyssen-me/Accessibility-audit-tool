@@ -626,16 +626,18 @@
   function updateSectionProgress() {
     CL.forEach(section => {
       const items = section.groups.flatMap(g => g.items);
-      let done = 0, fails = 0;
+      let done = 0, fails = 0, passes = 0;
       items.forEach(item => {
         const r = ST.res[item.id];
         if (r && r.s) done++;
         if (r && r.s === 'fail') fails++;
+        if (r && r.s === 'pass') passes++;
       });
       const pg = document.getElementById('pg-' + section.id);
       if (pg) pg.textContent = done + '/' + items.length + ' checked' + (fails > 0 ? ' · ' + fails + ' failed' : '');
       const tab = document.getElementById('nt-' + section.id);
       if (tab) tab.classList.toggle('has-fails', fails > 0);
+      if (tab) tab.classList.toggle('has-passed', passes > 0 && fails === 0);
     });
   }
 
@@ -687,17 +689,17 @@
         return `<tr>
           <td style="padding:9px 12px;font-size:12px;color:#b52d2d;font-weight:600;vertical-align:top;width:15%">${sec?.title || ''}</td>
           <td style="padding:9px 12px;font-size:12px;line-height:1.5;color:#1a1a1a;vertical-align:top">${item.t}</td>
-          <td style="padding:9px 12px;font-size:12px;color:#444;vertical-align:top">${cm}</td>
+          <td style="padding:9px 12px;font-size:12px;color:#5a6270;vertical-align:top">${cm}</td>
         </tr>`;
       }).join('');
       failSummaryHtml = `
         <div style="margin-bottom:32px;background:#fdf0f0;border:1px solid #e8a8a8;border-radius:6px;padding:20px">
           <h2 style="margin:0 0 14px;font-size:15px;color:#b52d2d">Issues requiring attention (${failedItems.length})</h2>
-          <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:4px;overflow:hidden;border:1px solid #eee">
+          <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:4px;overflow:hidden;border:1px solid #dde1e7">
             <thead><tr style="background:#fdf0f0">
-              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Section</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Issue</th>
-              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Notes</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase">Section</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase">Issue</th>
+              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase">Notes</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
@@ -714,31 +716,31 @@
 
       let groupsHtml = '';
       section.groups.forEach(group => {
-        groupsHtml += `<tr><td colspan="3" style="padding:8px 12px;background:#f5f7fa;font-size:12px;font-weight:600;color:#333;border-bottom:1px solid #e5e5e5">${group.title}</td></tr>`;
+        groupsHtml += `<tr><td colspan="3" style="padding:8px 12px;background:#eef1f5;font-size:12px;font-weight:600;color:#1a1a1a;border-bottom:1px solid #dde1e7">${group.title}</td></tr>`;
         group.items.forEach(item => {
           const r = ST.res[item.id] || { s: null, c: '' };
           const sl = r.s === 'pass' ? 'Pass' : r.s === 'fail' ? 'Fail' : r.s === 'na' ? 'N/A' : 'Not tested';
           const sc = r.s === 'pass' ? '#1e6e38' : r.s === 'fail' ? '#b52d2d' : r.s === 'na' ? '#555' : '#888';
           const sbg = r.s === 'pass' ? '#e8f8ee' : r.s === 'fail' ? '#fdf0f0' : r.s === 'na' ? '#f0f0f0' : '#fafafa';
           const sbd = r.s === 'pass' ? '#95d9ae' : r.s === 'fail' ? '#e8a8a8' : r.s === 'na' ? '#c0c0c0' : '#e0e0e0';
-          groupsHtml += `<tr style="border-bottom:1px solid #eee">
+          groupsHtml += `<tr style="border-bottom:1px solid #dde1e7">
             <td style="padding:9px 12px;font-size:12px;line-height:1.5;color:#1a1a1a;vertical-align:top">${item.t}</td>
             <td style="padding:9px 12px;vertical-align:top;white-space:nowrap">
               <span style="display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;background:${sbg};color:${sc};border:1px solid ${sbd}">${sl}</span>
             </td>
-            <td style="padding:9px 12px;font-size:12px;color:#444;vertical-align:top;line-height:1.5">${r.c || ''}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#5a6270;vertical-align:top;line-height:1.5">${r.c || ''}</td>
           </tr>`;
         });
       });
 
       sectionsHtml += `
         <div style="margin-bottom:32px;page-break-inside:avoid">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1a4a8a;padding-bottom:7px;margin-bottom:12px">
-            <h2 style="margin:0;font-size:14px;font-weight:700;color:#1a4a8a">${section.title}${section.isNew ? ' <span style="font-size:10px;background:#deeafb;color:#1a4a8a;padding:1px 7px;border-radius:3px;font-weight:600">NEW IN WCAG 2.2</span>' : ''}</h2>
-            <span style="font-size:11px;color:#666">${sp} passed &middot; ${sf} failed &middot; ${sna} n/a &middot; ${spd} not tested</span>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #00282E;padding-bottom:7px;margin-bottom:12px">
+            <h2 style="margin:0;font-size:14px;font-weight:700;color:#00282E">${section.title}${section.isNew ? ' <span style="font-size:10px;background:#deeafb;color:#00282E;padding:1px 7px;border-radius:3px;font-weight:600">NEW IN WCAG 2.2</span>' : ''}</h2>
+            <span style="font-size:11px;color:#5a6270">${sp} passed &middot; ${sf} failed &middot; ${sna} n/a &middot; ${spd} not tested</span>
           </div>
-          <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;border:1px solid #e5e5e5;border-radius:4px;overflow:hidden">
-            <thead><tr style="background:#f5f7fa">
+          <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;border:1px solid #dde1e7;border-radius:4px;overflow:hidden">
+            <thead><tr style="background:#eef1f5">
               <th style="padding:8px 12px;text-align:left;font-size:11px;color:#555;font-weight:600;width:55%">Check</th>
               <th style="padding:8px 12px;text-align:left;font-size:11px;color:#555;font-weight:600;width:12%">Result</th>
               <th style="padding:8px 12px;text-align:left;font-size:11px;color:#555;font-weight:600">Comments / notes</th>
@@ -748,7 +750,7 @@
         </div>`;
     });
 
-    const scopeRow = d.sc ? `<tr><td style="padding:5px 10px;font-size:12px;color:#666;width:120px">Scope</td><td style="padding:5px 10px;font-size:12px;color:#1a1a1a">${d.sc}</td></tr>` : '';
+    const scopeRow = d.sc ? `<tr><td style="padding:5px 10px;font-size:12px;color:#5a6270;width:120px">Scope</td><td style="padding:5px 10px;font-size:12px;color:#1a1a1a">${d.sc}</td></tr>` : '';
 
     const report = `<!DOCTYPE html>
 <html lang="en">
@@ -768,25 +770,25 @@
 <body>
 <div class="page">
 
-  <div style="border-bottom:3px solid #1a4a8a;padding-bottom:20px;margin-bottom:28px">
-    <h1 style="margin:0 0 5px;font-size:24px;font-weight:700;color:#1a4a8a">Accessibility audit report</h1>
-    <p style="margin:0;font-size:13px;color:#666">WCAG 2.2 Level AA &middot; Generated ${now}</p>
+  <div style="border-bottom:3px solid #00282E;padding-bottom:20px;margin-bottom:28px">
+    <h1 style="margin:0 0 5px;font-size:24px;font-weight:700;color:#00282E">Accessibility audit report</h1>
+    <p style="margin:0;font-size:13px;color:#5a6270">WCAG 2.2 Level AA &middot; Generated ${now}</p>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px">
     <div style="border:1px solid #dde1e7;border-radius:6px;padding:16px">
-      <p style="margin:0 0 4px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Site</p>
+      <p style="margin:0 0 4px;font-size:11px;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Site</p>
       <p style="margin:0;font-size:15px;font-weight:700">${d.sn || '—'}</p>
-      ${d.su ? `<p style="margin:4px 0 0;font-size:12px;color:#1a4a8a">${d.su}</p>` : ''}
+      ${d.su ? `<p style="margin:4px 0 0;font-size:12px;color:#00282E">${d.su}</p>` : ''}
     </div>
     <div style="border:1px solid #dde1e7;border-radius:6px;padding:16px">
-      <p style="margin:0 0 4px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Tester</p>
+      <p style="margin:0 0 4px;font-size:11px;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Tester</p>
       <p style="margin:0;font-size:15px;font-weight:700">${d.tn || '—'}</p>
-      <p style="margin:4px 0 0;font-size:12px;color:#666">Date tested: ${d.td || '—'}</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#5a6270">Date tested: ${d.td || '—'}</p>
     </div>
   </div>
 
-  ${d.sc ? `<div style="background:#f5f7fa;border-radius:6px;padding:12px 16px;margin-bottom:24px;font-size:13px;color:#444"><strong>Scope:</strong> ${d.sc}</div>` : ''}
+  ${d.sc ? `<div style="background:#eef1f5;border-radius:6px;padding:12px 16px;margin-bottom:24px;font-size:13px;color:#5a6270"><strong>Scope:</strong> ${d.sc}</div>` : ''}
 
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px">
     <div style="background:#e8f8ee;border-radius:6px;padding:16px;text-align:center">
@@ -801,18 +803,18 @@
       <p style="margin:0 0 4px;font-size:28px;font-weight:700;color:#555">${na}</p>
       <p style="margin:0;font-size:11px;color:#555;font-weight:600">Not applicable</p>
     </div>
-    <div style="background:#fafafa;border:1px solid #eee;border-radius:6px;padding:16px;text-align:center">
-      <p style="margin:0 0 4px;font-size:28px;font-weight:700;color:#888">${pend}</p>
-      <p style="margin:0;font-size:11px;color:#888;font-weight:600">Not tested</p>
+    <div style="background:#fafafa;border:1px solid #dde1e7;border-radius:6px;padding:16px;text-align:center">
+      <p style="margin:0 0 4px;font-size:28px;font-weight:700;color:#8a92a0">${pend}</p>
+      <p style="margin:0;font-size:11px;color:#8a92a0;font-weight:600">Not tested</p>
     </div>
   </div>
 
   ${failSummaryHtml}
 
-  <h2 style="font-size:16px;font-weight:700;color:#1a4a8a;border-bottom:1px solid #dde1e7;padding-bottom:8px;margin-bottom:24px">Full results by section</h2>
+  <h2 style="font-size:16px;font-weight:700;color:#00282E;border-bottom:1px solid #dde1e7;padding-bottom:8px;margin-bottom:24px">Full results by section</h2>
   ${sectionsHtml}
 
-  <div style="margin-top:40px;padding-top:14px;border-top:1px solid #dde1e7;font-size:11px;color:#aaa;text-align:center">
+  <div style="margin-top:40px;padding-top:14px;border-top:1px solid #dde1e7;font-size:11px;color:#8a92a0;text-align:center">
     Accessibility Audit Tool &middot; WCAG 2.2 Level AA &middot; Report generated ${now}
   </div>
 

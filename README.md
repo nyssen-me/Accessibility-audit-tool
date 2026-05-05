@@ -84,15 +84,16 @@ You can also open the file directly in a browser by double-clicking it, though s
 
 ## Developer guide
 
-The entire application is contained in a single file: `accessibility-audit-tool.html`.
+The application is split across three files:
 
-It has three parts:
+```
+accessibility-audit-tool.html   — page structure and the two views (site details form and testing interface)
+assets/css/style.css            — all styling
+```
 
-- **HTML** — the page structure and the two views (site details form and testing interface)
-- **CSS** — all styling, inside a `<style>` block in the `<head>`
-- **JavaScript** — all logic, inside a `<script>` block at the end of `<body>`
+JavaScript is contained within a `<script>` block at the end of `<body>` in the HTML file.
 
-There is no build step, no package manager, and no framework. You can edit the file in any text editor such as Notepad++, VS Code, or Sublime Text.
+There is no build step, no package manager, and no framework. You can edit any of these files in any text editor such as Notepad++, VS Code, or Sublime Text.
 
 ---
 
@@ -272,7 +273,7 @@ groups: [
 
 ### Changing colours and styling
 
-All colours are defined as CSS custom properties (variables) at the top of the `<style>` block, inside `:root { ... }`. You can change any of them without touching the rest of the CSS.
+All colours are defined as CSS custom properties (variables) at the top of `assets/css/style.css`, inside `:root { ... }`. You can change any of them without touching the rest of the CSS.
 
 ```css
 :root {

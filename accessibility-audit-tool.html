@@ -20,7 +20,7 @@
       <div id="header-site-info" aria-live="polite"></div>
       <div class="header-actions" id="header-actions" style="display:none">
         <button class="btn-header" onclick="editDetails()" aria-label="Edit site details">Edit details</button>
-        <button class="btn-header" onclick="showResetDialog()" aria-label="Start a new audit">New audit</button>
+        <button class="btn-header" onclick="showAllAudits()" aria-label="View all saved audits">All audits</button>
       </div>
     </div>
   </header>
@@ -36,6 +36,17 @@
 
     <!-- View 1: Site details form -->
     <div id="form-view">
+
+      <!-- Saved audits (populated by JS) -->
+      <section class="saved-audits-section" id="saved-audits-section" aria-labelledby="saved-audits-heading" style="display:none">
+        <div class="saved-audits-header">
+          <h2 id="saved-audits-heading" class="saved-audits-heading">Your saved audits</h2>
+          <div class="saved-audits-io" id="saved-audits-io"></div>
+        </div>
+        <div id="saved-audits-list" role="list"></div>
+        <div class="saved-audits-divider" id="saved-audits-divider" style="display:none"><span>or start a new audit</span></div>
+      </section>
+
       <div class="form-card">
         <h2>Start a new audit</h2>
         <p class="intro">Enter the details of the site you're testing. This information will appear in the generated report. Your progress is saved automatically in your browser.</p>
@@ -102,20 +113,8 @@
         <span class="stat stat-pend" id="fstat-pend">0 not tested</span>
       </div>
       <div class="footer-actions">
-        <button class="btn-reset" onclick="showResetDialog()">New audit</button>
+        <button class="btn-reset" onclick="showAllAudits()">All audits</button>
         <button class="btn-report" onclick="generateReport()">Generate report</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reset confirmation dialog -->
-  <div class="dialog-overlay" id="reset-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-    <div class="dialog">
-      <h3 id="dialog-title">Start a new audit?</h3>
-      <p>This will clear all your current results and comments. This action cannot be undone.</p>
-      <div class="dialog-buttons">
-        <button class="btn-cancel" onclick="hideResetDialog()">Cancel</button>
-        <button class="btn-confirm-danger" onclick="resetAudit()">Clear and start new</button>
       </div>
     </div>
   </div>
@@ -379,35 +378,141 @@
 
   // ─── State ────────────────────────────────────────────────────────────────
 
-  const STORAGE_KEY = 'a11y-audit-v2';
+  const AUDITS_KEY = 'a11y-audits-v3';
   const allItems = CL.flatMap(s => s.groups.flatMap(g => g.items));
+  let audits = {};
+  let currentAuditId = null;
   let ST = { det: {}, res: {} };
   let currentSection = 0;
 
-  // ─── Storage (localStorage) ───────────────────────────────────────────────
+  // ─── Storage ──────────────────────────────────────────────────────────────
 
-  function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ST)); } catch(e) {}
+  function loadAllAudits() {
+    try {
+      const r = localStorage.getItem(AUDITS_KEY);
+      return r ? JSON.parse(r) : {};
+    } catch(e) { return {}; }
   }
 
-  function loadState() {
-    try {
-      const r = localStorage.getItem(STORAGE_KEY);
-      return r ? JSON.parse(r) : null;
-    } catch(e) { return null; }
+  function saveAllAudits() {
+    try { localStorage.setItem(AUDITS_KEY, JSON.stringify(audits)); } catch(e) {}
+  }
+
+  function saveState() {
+    if (!currentAuditId) return;
+    audits[currentAuditId] = ST;
+    saveAllAudits();
   }
 
   // ─── Initialise ───────────────────────────────────────────────────────────
 
   function init() {
-    const saved = loadState();
-    if (saved) ST = saved;
+    audits = loadAllAudits();
+
+    // Migrate from old single-audit format
+    try {
+      const old = localStorage.getItem('a11y-audit-v2');
+      if (old) {
+        const parsed = JSON.parse(old);
+        if (parsed && parsed.det && parsed.det.sn) {
+          const id = 'audit-migrated-' + Date.now();
+          audits[id] = parsed;
+          saveAllAudits();
+        }
+        localStorage.removeItem('a11y-audit-v2');
+      }
+    } catch(e) {}
+
     const dateInput = document.getElementById('inp-date');
-    if (dateInput) dateInput.value = ST.det.td || new Date().toISOString().split('T')[0];
-    if (ST.det.sn) {
-      fillForm();
-      startTesting(true);
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    renderAuditList();
+  }
+
+  function renderAuditList() {
+    const ids = Object.keys(audits).sort((a, b) => b.localeCompare(a));
+    const section = document.getElementById('saved-audits-section');
+    const divider = document.getElementById('saved-audits-divider');
+
+    section.style.display = 'block';
+
+    document.getElementById('saved-audits-io').innerHTML =
+      (ids.length > 0 ? `<button class="btn-data-io" onclick="exportAudits()">Export all</button>` : '') +
+      `<button class="btn-data-io" onclick="importAudits()">Import backup</button>`;
+
+    if (ids.length === 0) {
+      document.getElementById('saved-audits-list').innerHTML =
+        '<p class="no-audits-msg">No saved audits yet.</p>';
+      divider.style.display = 'none';
+      return;
     }
+
+    divider.style.display = 'block';
+    document.getElementById('saved-audits-list').innerHTML = ids.map(id => {
+      const audit = audits[id] || {};
+      const d = audit.det || {};
+      const pct = calcProgress(audit.res || {});
+      const fails = Object.values(audit.res || {}).filter(r => r && r.s === 'fail').length;
+      return `<div class="saved-audit-item" role="listitem">
+        <div class="saved-audit-info">
+          <div class="saved-audit-name">${esc(d.sn || 'Unnamed audit')}</div>
+          <div class="saved-audit-meta">
+            ${d.tn ? `<span>${esc(d.tn)}</span>` : ''}
+            ${d.td ? `<span>${esc(fmtDate(d.td))}</span>` : ''}
+            <span class="${fails > 0 ? 'meta-fails' : ''}">${pct}% complete${fails > 0 ? ` &middot; ${fails} failed` : ''}</span>
+          </div>
+        </div>
+        <div class="saved-audit-actions">
+          <button class="btn-resume" data-id="${id}" onclick="resumeAudit(this.dataset.id)">Resume</button>
+          <button class="btn-delete-audit" data-id="${id}" data-name="${esc(d.sn || 'Unnamed audit')}" onclick="confirmDeleteAudit(this.dataset.id, this.dataset.name)" aria-label="Delete audit for ${esc(d.sn || 'Unnamed audit')}">Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function exportAudits() {
+    const blob = new Blob([JSON.stringify(audits, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'a11y-audits-' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importAudits() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+            throw new Error('Invalid format');
+          }
+          const count = Object.keys(imported).length;
+          Object.assign(audits, imported);
+          saveAllAudits();
+          renderAuditList();
+          alert(count + ' audit(s) imported successfully.');
+        } catch(err) {
+          alert('Could not import: the file does not appear to be a valid audits backup.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  function calcProgress(res) {
+    const done = Object.values(res).filter(r => r && r.s).length;
+    return Math.round((done / allItems.length) * 100);
   }
 
   function fillForm() {
@@ -417,6 +522,46 @@
     document.getElementById('inp-tester').value = d.tn || '';
     document.getElementById('inp-date').value = d.td || '';
     document.getElementById('inp-scope').value = d.sc || '';
+  }
+
+  // ─── Audit management ─────────────────────────────────────────────────────
+
+  function resumeAudit(id) {
+    currentAuditId = id;
+    ST = JSON.parse(JSON.stringify(audits[id] || { det: {}, res: {} }));
+    fillForm();
+    startTesting(true);
+  }
+
+  function confirmDeleteAudit(id, name) {
+    if (confirm('Delete the audit for "' + name + '"?\n\nThis cannot be undone.')) {
+      delete audits[id];
+      saveAllAudits();
+      renderAuditList();
+    }
+  }
+
+  function showAllAudits() {
+    saveState();
+    currentAuditId = null;
+    ST = { det: {}, res: {} };
+
+    document.getElementById('inp-site-name').value = '';
+    document.getElementById('inp-site-url').value = '';
+    document.getElementById('inp-tester').value = '';
+    document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('inp-scope').value = '';
+    document.getElementById('sections-container').innerHTML = '';
+    document.getElementById('section-nav-tabs').innerHTML = '';
+
+    document.getElementById('form-view').style.display = 'block';
+    document.getElementById('testing-view').style.display = 'none';
+    document.getElementById('section-nav-wrap').style.display = 'none';
+    document.getElementById('footer-bar').style.display = 'none';
+    document.getElementById('header-actions').style.display = 'none';
+    document.getElementById('header-site-info').style.display = 'none';
+
+    renderAuditList();
   }
 
   // ─── Start testing ────────────────────────────────────────────────────────
@@ -429,6 +574,11 @@
       td: document.getElementById('inp-date').value,
       sc: document.getElementById('inp-scope').value.trim()
     };
+
+    if (!currentAuditId) {
+      currentAuditId = 'audit-' + Date.now();
+    }
+
     saveState();
 
     document.getElementById('form-view').style.display = 'none';
@@ -445,10 +595,8 @@
       (d.tn ? `<span class="site-detail">Tester: <strong>${esc(d.tn)}</strong></span>` : '') +
       (d.td ? `<span class="site-detail">${esc(fmtDate(d.td))}</span>` : '');
 
-    if (!document.getElementById('sections-container').children.length) {
-      buildSections();
-      buildNav();
-    }
+    buildSections();
+    buildNav();
     showSection(0);
     if (restoring) restoreAll();
     updateStats();
@@ -461,6 +609,7 @@
     document.getElementById('footer-bar').style.display = 'none';
     document.getElementById('header-actions').style.display = 'none';
     document.getElementById('header-site-info').style.display = 'none';
+    document.getElementById('saved-audits-section').style.display = 'none';
     fillForm();
   }
 
@@ -639,31 +788,6 @@
       if (tab) tab.classList.toggle('has-passed', passes > 0 && fails === 0);
     });
   }
-
-  // ─── Reset ────────────────────────────────────────────────────────────────
-
-  function showResetDialog() {
-    document.getElementById('reset-dialog').classList.add('visible');
-    document.querySelector('.btn-confirm-danger').focus();
-  }
-  function hideResetDialog() {
-    document.getElementById('reset-dialog').classList.remove('visible');
-  }
-  function resetAudit() {
-    ST = { det: {}, res: {} };
-    localStorage.removeItem(STORAGE_KEY);
-    hideResetDialog();
-    location.reload();
-  }
-
-  // Close dialog on overlay click
-  document.getElementById('reset-dialog').addEventListener('click', function(e) {
-    if (e.target === this) hideResetDialog();
-  });
-  // Close dialog on Escape
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') hideResetDialog();
-  });
 
   // ─── Report generation ────────────────────────────────────────────────────
 

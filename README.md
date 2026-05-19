@@ -18,7 +18,7 @@ A self-contained web application for conducting WCAG 2.2 Level AA accessibility 
   - [Adding a new section](#adding-a-new-section)
   - [Adding a new group within a section](#adding-a-new-group-within-a-section)
   - [Changing colours and styling](#changing-colours-and-styling)
-  - [Running multiple audits simultaneously](#running-multiple-audits-simultaneously)
+  - [Managing multiple audits](#managing-multiple-audits)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -76,9 +76,9 @@ You can also open the file directly in a browser by double-clicking it, though s
 4. **Add comments** — a comment box appears automatically when you mark something as Fail. You can type a description of the issue, the affected page, or any other relevant note.
 5. **Monitor progress** — the progress bar and counters at the top update as you go. Sections with failures are highlighted in red in the tab bar.
 6. **Generate the report** — click **Generate report** at the bottom right. A HTML file downloads automatically. Open it in any browser to view or print it.
-7. **Start a new audit** — click **New audit** in the header. You will be asked to confirm before your current progress is cleared.
+7. **Return to the audit list** — click **All audits** in the header or footer at any time. Your current progress is saved automatically. From the list you can resume any previous audit, start a new one, export a backup, or delete audits you no longer need.
 
-> **Note:** Progress is saved in your browser automatically. If you close the tab and reopen the tool in the same browser on the same machine, your audit will be restored. Progress is not shared between different browsers or different machines.
+> **Note:** All audits are saved in your browser automatically. If you close the tab and reopen the tool in the same browser on the same machine, your audits will be there. Audits are not shared between different browsers or different machines. To keep a permanent backup, use **Export all** on the audit list page to download a `.json` file you can import later.
 
 ---
 
@@ -106,11 +106,11 @@ Within the JavaScript, the code is organised into clearly labelled sections usin
 // ─── State ────────────
 // ─── Storage ──────────
 // ─── Initialise ───────
+// ─── Audit management ─
 // ─── Start testing ────
 // ─── Build sections ───
 // ─── Status and comments ───
 // ─── Stats ────────────
-// ─── Reset ────────────
 // ─── Report generation ───
 // ─── Utility ──────────
 ```
@@ -324,27 +324,24 @@ For example, to change the header and primary colour from blue to a dark green, 
 
 ---
 
-### Running multiple audits simultaneously
+### Managing multiple audits
 
-By default, the tool saves one audit at a time under the key `a11y-audit-v2` in `localStorage`. If you want to run two separate instances — for example one for a desktop audit and one for a mobile audit — you can duplicate the HTML file and change the storage key in each copy.
+The tool supports multiple saved audits at once. Each audit is stored independently under a unique ID, so you can run and return to as many audits as you like without any configuration changes.
 
-Find this line near the top of the `<script>` block:
+**Starting a new audit**  
+Fill in the site details form and click **Start testing**. The new audit is saved automatically and will appear in the list next time you visit the audit list page.
 
-```javascript
-const STORAGE_KEY = 'a11y-audit-v2';
-```
+**Switching between audits**  
+Click **All audits** in the header or footer at any time. Your current progress is saved automatically, and you are taken back to the list where you can resume any previous audit.
 
-Change it to something unique in each copy:
+**Backing up your audits (export)**  
+On the audit list page, click **Export all** to download a `.json` file containing all your saved audits. Store this somewhere safe — it can be used to restore your audits if you ever clear your browser data.
 
-```javascript
-// In accessibility-audit-tool-desktop.html
-const STORAGE_KEY = 'a11y-audit-desktop';
+**Restoring from a backup (import)**  
+Click **Import backup** on the audit list page and select a previously exported `.json` file. Imported audits are merged with any audits already saved in the browser, so nothing is overwritten.
 
-// In accessibility-audit-tool-mobile.html
-const STORAGE_KEY = 'a11y-audit-mobile';
-```
-
-Each copy will then save and restore its own independent progress.
+**Deleting an audit**  
+Each saved audit has a **Delete** button on the audit list page. You will be asked to confirm before anything is removed.
 
 ---
 
@@ -359,11 +356,11 @@ Results are stored by item ID. Changing an ID breaks the link to any previously 
 **The report downloads but will not open.**  
 The report is a standard HTML file. Open it in any browser by double-clicking it, or right-clicking and choosing "Open with".
 
-**I want to clear the saved progress without using the app.**  
-Open your browser's developer tools (F12), go to the **Application** tab (Chrome) or **Storage** tab (Firefox), find **Local Storage**, and delete the entry with the key `a11y-audit-v2`.
+**I want to clear all saved audits without using the app.**  
+Open your browser's developer tools (F12), go to the **Application** tab (Chrome) or **Storage** tab (Firefox), find **Local Storage**, and delete the entry with the key `a11y-audits-v3`.
 
-**I accidentally clicked "New audit" and lost my progress.**  
-Unfortunately this cannot be undone. The "New audit" action clears `localStorage` immediately on confirmation. For important audits, it is good practice to generate a report as a backup before starting a new one.
+**I cleared my browser data and lost my audits.**  
+If you previously used **Export all**, you can restore from that file using **Import backup** on the audit list page. If you did not export a backup, the audits cannot be recovered. Going forward, export a backup regularly or after each session.
 
 ---
 

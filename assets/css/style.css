@@ -409,36 +409,121 @@ body {
 .btn-reset:hover { background: var(--bg-secondary); color: var(--text); }
 .btn-reset:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-/* ── Confirmation dialog ── */
-.dialog-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 200;
+
+/* ── Saved audits list ── */
+.saved-audits-section {
+  max-width: 640px;
+  margin: 40px auto 0;
+}
+.saved-audits-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
-.dialog-overlay.visible { display: flex; }
-.dialog {
+.saved-audits-heading {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0;
+}
+.saved-audits-io { display: flex; gap: 6px; }
+.btn-data-io {
+  padding: 5px 12px;
+  font-size: 1.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-data-io:hover { background: var(--bg-tertiary); color: var(--text); }
+.btn-data-io:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.no-audits-msg {
+  font-size: 1.5rem;
+  color: var(--text-subtle);
+  padding: 16px;
+  text-align: center;
   background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
-  max-width: 380px;
-  width: 90%;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
-.dialog h3 { font-size: 16px; margin-bottom: 8px; }
-.dialog p { font-size: 1.6rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
-.dialog-buttons { display: flex; gap: 8px; justify-content: flex-end; }
-.btn-cancel {
-  padding: 7px 14px; font-size: 1.6rem; border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted);
-  cursor: pointer; font-family: inherit;
+.saved-audit-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
 }
-.btn-confirm-danger {
-  padding: 7px 14px; font-size: 1.6rem; font-weight: 500; border-radius: var(--radius-sm);
-  border: none; background: var(--danger); color: #fff; cursor: pointer; font-family: inherit;
+.saved-audit-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.saved-audit-meta {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.meta-fails { color: var(--danger); }
+.saved-audit-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-resume {
+  padding: 6px 14px;
+  font-size: 1.5rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-resume:hover { background: var(--primary-mid); border-color: var(--primary-mid); }
+.btn-resume:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn-delete-audit {
+  padding: 6px 12px;
+  font-size: 1.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-delete-audit:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+.btn-delete-audit:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.saved-audits-divider {
+  text-align: center;
+  margin: 24px 0 0;
+  position: relative;
+  color: var(--text-subtle);
+  font-size: 1.5rem;
+}
+.saved-audits-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+.saved-audits-divider span {
+  position: relative;
+  background: var(--bg-secondary);
+  padding: 0 12px;
 }
 
 /* ── Responsive ── */
@@ -449,6 +534,8 @@ body {
   .section-nav-inner { padding: 8px 16px; }
   .progress-area { flex-direction: column; align-items: flex-start; gap: 10px; }
   .footer-stats { display: none; }
+  .saved-audit-item { flex-wrap: wrap; }
+  .saved-audit-actions { width: 100%; justify-content: flex-start; }
 }
 
 /* ── Print styles ── */
